@@ -210,7 +210,24 @@ void InvShiftRows(unsigned int *state){
     state[i] = (state[i] & 0xffffff00) | temp[(i+1)%4];
 } 
 
-void InvSubBytes(unsigned int *state);
+unsigned int InvSubWord(unsigned int temp){
+  unsigned int state[4];
+  state[0]=temp&0xff;
+  state[1]=(temp&0xff00)>>8;
+  state[2]=(temp&0xff0000)>>16;
+  state[3]=(temp&0xff000000)>>24;
+  int i=0;
+  for(i=0;i<4;i++)
+    state[i]=invsBox[state[i]];
+  return (state[0]+(state[1]<<8)+(state[2]<<16)+(state[3]<<24));
+}
+
+
+void InvSubBytes(unsigned int *state){
+  int i=0;
+  for(i=0;i<4;i++)
+    state[i]=InvSubWord(state[i]);
+}
 
 void InvMixColumns(unsigned int *state){
   unsigned int b[16]={0};
@@ -266,18 +283,17 @@ unsigned int FFmul(unsigned int x, unsigned int y){
 }
 
 int main() {
-  /*unsigned int state[]={0x328831e0,0x435a3137,0xf6309807,0xa88da234};
-  unsigned int w[]={0x2b28ab09,0x7eaef7cf,0x15d2154f,0x16a6883c};
-  int i=0;
-  Encrypt(state,w);
-  for(i=0;i<4;i++)
-    printf("%08x\n",state[i]);
-  return 0;
-  */
+  //encrypt
   unsigned int w[]={0x2b7e1516,0x28aed2a6,0xabf71588,0x09cf4f3c};
   unsigned int state[]={0x3243f6a8,0x885a308d,0x313198a2,0xe0370734};
   Encrypt(state,w);
   int i=0;
+  for(i=0;i<4;i++)
+    printf("%08x\n",state[i]);
+  
+  printf("\n");
+  //decrypt
+  Decrypt(state,w);
   for(i=0;i<4;i++)
     printf("%08x\n",state[i]);
   return 0;
@@ -288,9 +304,9 @@ int main() {
 
 void Encrypt(unsigned int *target, unsigned int *w){
   KeyExpansion(key,w,10);
-  int j=0;
+  /*int j=0;
   for(j=0;j<44;j++)
-  printf("%08x\n",key[j]);
+  printf("%08x\n",key[j]);*/
   AddRoundKey(target,key,0);
   int i=1;
   for(i=1;i<10;i++){
@@ -301,5 +317,28 @@ void Encrypt(unsigned int *target, unsigned int *w){
   }
   SubBytes(target);
   ShiftRows(target);
+  AddRoundKey(target,key,i);
+}
+
+void Decrypt(unsigned int *target, unsigned int *w){
+  KeyExpansion(key,w,10);
+  int i=0;
+  for(i=0;i<5;i++){
+    int j=10-i,ct=0;
+    for(ct=0;ct<4;ct++){
+      unsigned int temp=key[i*4+ct];
+      key[i*4+ct]=key[j*4+ct];
+      key[j*4+ct]=temp;
+    }
+  }
+  AddRoundKey(target,key,0);
+  InvShiftRows(target);
+  InvSubBytes(target);
+  for(i=1;i<10;i++){
+    AddRoundKey(target,key,i);
+    InvMixColumns(target);
+    InvShiftRows(target);
+    InvSubBytes(target);
+  }
   AddRoundKey(target,key,i);
 }
