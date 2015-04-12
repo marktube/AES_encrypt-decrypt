@@ -1,12 +1,10 @@
 #include<stdio.h>
 #include<string.h>
 
-unsigned char MC_Matrix[] = { 0x02, 0x03, 0x01, 0x01, 0x01, 0x02, 0x03, 0x01,0x01, 0x01, 0x02, 0x03, 0x03, 0x01, 0x01, 0x02 };
-
 unsigned char InvMC_Matrix[] = { 0x0e, 0x0b, 0x0d, 0x09, 0x09, 0x0e, 0x0b, 0x0d,0x0d, 0x09, 0x0e, 0x0b, 0x0b, 0x0d, 0x09, 0x0e };
 
 unsigned int Rcon[11] = {0x0,0x01000000, 0x02000000, 0x04000000, 0x08000000, 
- 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000};
+ 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000}; 
 
 unsigned char sBox[] =
 
@@ -45,8 +43,6 @@ unsigned char sBox[] =
     0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16 /*f*/
 
   };
-
- 
 
 unsigned char invsBox[256] =
 
@@ -88,8 +84,6 @@ unsigned char invsBox[256] =
 
 unsigned int key[44];
 
-void Encrypt(unsigned int *target, unsigned int *w);
-
 void Decrypt(unsigned int *target, unsigned int *w);
 
 void AddRoundKey(unsigned int *state, unsigned int *key, int round){
@@ -119,64 +113,14 @@ void SubBytes(unsigned int *state){
     state[i]=SubWord(state[i]);
 }
 
-void ShiftRows(unsigned int *state){
-  //shift each row of the state                                                 
-  unsigned int temp[4];
-  int i=0;
-  for(i=0;i<4;i++)
-    temp[i] = state[i] & 0xff0000;
-  for(i=0;i<4;i++)
-    state[i] = (state[i] & 0xff00ffff) | temp[(i+1)%4];
-  for(i=0;i<4;i++)
-    temp[i] = state[i] & 0xff00;
-  for(i=0;i<4;i++)
-    state[i] = (state[i] & 0xffff00ff) | temp[(i+2)%4];
-  for(i=0;i<4;i++)
-    temp[i] = state[i] & 0xff;
-  for(i=0;i<4;i++)
-    state[i] = (state[i] & 0xffffff00) | temp[(i+3)%4];
-}
-
 unsigned int FFmul(unsigned int x, unsigned int y);
-
-void MixColumns(unsigned int *state){
-  //mix the columns of the state with a matrix 
-  unsigned int b[16]={0};
-  int i=0;
-  for(i=0;i<4;i++){
-    b[i*4]=(state[i]&0xff000000)>>24;
-    b[i*4+1]=(state[i]&0xff0000)>>16;
-    b[i*4+2]=(state[i]&0xff00)>>8;
-    b[i*4+3]=state[i]&0xff;
-  }
-  for(i=0;i<4;i++){
-    state[i]=0;
-    int j=0;
-    for(j=0;j<4;j++){
-      state[i]+=FFmul(b[i*4],MC_Matrix[j*4]) ^ FFmul(b[i*4+1],MC_Matrix[j*4+1])
-        ^ FFmul(b[i*4+2],MC_Matrix[j*4+2]) ^ FFmul(b[i*4+3],MC_Matrix[j*4+3]);
-      if(j<3)
-        state[i] <<= 8;
-    }
-  }
-}
 
 unsigned int RotWord(unsigned int temp){
   // left shift the words
   return (temp<<8)|(temp>>24);
 }
 
-
 void KeyExpansion(unsigned int* key, unsigned int* w, int round){
-  //a key can be expanded to round+1 keys
-  //each key is composed by four words
-  //and the keyexpansion have the rules shown below 
-  //if (i != 4) word[i] = word[i-4] ^ word[i-1]
-  //else if ( i == 4){
-  // temp = SubWord(RotWord(word[i-1])) ^ 
-  //RotWord(RotWord(RotWord(Rcon[i / 4])));
-  // word[i] = temp ^ w[i-4]; 
-  // }
   int i=4;
   int temp=0;
   memcpy(key,w,sizeof(unsigned int)*4);
@@ -193,7 +137,7 @@ void KeyExpansion(unsigned int* key, unsigned int* w, int round){
 
 //the Inverse function are the same as the function above, it is easy to implement if you have finished the function above
 void InvShiftRows(unsigned int *state){
-  //shift each row of the state                                                 
+  //shift each row of the state                               
   unsigned int temp[4];
   int i=0;
   for(i=0;i<4;i++)
@@ -254,15 +198,15 @@ void InvMixColumns(unsigned int *state){
 
 //void hex2dec(string cipher_text, int* dec_text);
 
-void dec2word(int* dec_text, unsigned int word);
+//void dec2word(int* dec_text, unsigned int word);
 
-void word2hex(unsigned int word);
+//void word2hex(unsigned int word){
+  
+//}
 
-void word2char(unsigned int word);
+//void word2char(unsigned int word);
 
-void printhex(unsigned int word){
-  printf("%08x\n",word);
-}
+//void printhex(unsigned int word);
 
 unsigned int FFmul(unsigned int x, unsigned int y){
   // return the product of two bytes
@@ -283,54 +227,85 @@ unsigned int FFmul(unsigned int x, unsigned int y){
 }
 
 int main() {
-  //encrypt
-  unsigned int w[]={0x2b7e1516,0x28aed2a6,0xabf71588,0x09cf4f3c};
-  unsigned int state[]={0x3243f6a8,0x885a308d,0x313198a2,0xe0370734};
-  Encrypt(state,w);
-  int i=0;
-  for(i=0;i<4;i++)
-    printf("%08x\n",state[i]);
-  
-  printf("\n");
-  //decrypt
-  Decrypt(state,w);
-  for(i=0;i<4;i++)
-    printf("%08x\n",state[i]);
-  return 0;
   //CBC Decryption
-  
-  //CTR Decryption
-}
-
-void Encrypt(unsigned int *target, unsigned int *w){
-  KeyExpansion(key,w,10);
-  /*int j=0;
-  for(j=0;j<44;j++)
-  printf("%08x\n",key[j]);*/
-  AddRoundKey(target,key,0);
-  int i=1;
-  for(i=1;i<10;i++){
-    SubBytes(target);
-    ShiftRows(target);
-    MixColumns(target);
-    AddRoundKey(target,key,i);
+  FILE* keyPtr, *cryptPtr;
+  if ((keyPtr = fopen("CBCkey", "r")) == NULL) {
+    printf("Key file could not be opened!\n");
+    return 0;
   }
-  SubBytes(target);
-  ShiftRows(target);
-  AddRoundKey(target,key,i);
+  if ((cryptPtr = fopen("CBCciphertext", "r")) == NULL) {
+    printf("Ciphertext file could not be opened!\n");
+    return 0;
+  }
+  unsigned int w[4];
+  unsigned int IV[4];
+  int i=0;
+  //key read
+  for(i=0;i<4;i++)
+    fscanf(keyPtr,"%8x",&w[i]);
+  
+  /*for(i=0;i<4;i++)
+    printf("%08x\n",w[i]);
+    printf("\n");*/
+  
+  //IV read
+  for(i=0;i<4;i++)
+    fscanf(cryptPtr,"%8x",&IV[i]);
+
+  /*  for(i=0;i<4;i++)
+    printf("%08x\n",IV[i]);
+    printf("\n");*/
+  
+  //ciphertext read
+  int ct=0;
+  unsigned int buff=0;
+  unsigned int state[4]={0};
+  while(!feof(cryptPtr)){
+    fscanf(cryptPtr,"%2x",&buff);
+    state[ct/4] <<= 8;
+    state[ct/4] += buff;
+    ct++;
+    if(ct==16){
+      ct=0;
+      //backup the state
+      int n=0;
+      unsigned int tmp[4]={0};
+      for(n=0;n<4;n++)
+	tmp[n]=state[n];
+      //Decrypt
+      Decrypt(state,w);
+      //Xor
+      for(n=0;n<4;n++){
+	state[n]=state[n]^IV[n];
+	//print
+	int j=0;
+	for(j=0;j<4;j++)
+	  printf("%c",(state[n]>>(3-j)*8)&0xff);
+	IV[n]=tmp[n];
+	state[n]=0;
+      }
+    }
+  }
+  printf("\n");
+  return 0;
 }
 
 void Decrypt(unsigned int *target, unsigned int *w){
-  KeyExpansion(key,w,10);
-  int i=0;
-  for(i=0;i<5;i++){
-    int j=10-i,ct=0;
-    for(ct=0;ct<4;ct++){
-      unsigned int temp=key[i*4+ct];
-      key[i*4+ct]=key[j*4+ct];
-      key[j*4+ct]=temp;
+  static int first=0;
+  if(first==0){
+    KeyExpansion(key,w,10);
+    int i=0;
+    for(i=0;i<5;i++){
+      int j=10-i,ct=0;
+      for(ct=0;ct<4;ct++){
+	unsigned int temp=key[i*4+ct];
+	key[i*4+ct]=key[j*4+ct];
+	key[j*4+ct]=temp;
+      }
     }
+    first++;
   }
+  int i=0;
   AddRoundKey(target,key,0);
   InvShiftRows(target);
   InvSubBytes(target);
